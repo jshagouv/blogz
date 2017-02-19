@@ -7,7 +7,8 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
 
 class BlogHandler(webapp2.RequestHandler):
-    """ Utility class for gathering various useful methods that are used by most request handlers """
+    """ Utility class for gathering various useful methods that are used by
+    most request handlers """
 
     def get_posts(self, limit, offset):
         """ Get all posts ordered by creation date (descending) """
@@ -16,12 +17,13 @@ class BlogHandler(webapp2.RequestHandler):
 
     def get_posts_by_user(self, user, limit, offset):
         """
-            Get all posts by a specific user, ordered by creation date (descending).
+            Get all posts by a specific user, ordered by creation date
+            (descending).
             The user parameter will be a User object.
         """
 
-        # TODO - filter the query so that only posts by the given user
-        return None
+        query = Post.all().filter("author", user).order('-created')
+        return query.fetch(limit=limit, offset=offset)
 
     def get_user_by_name(self, username):
         """ Get a user object from the db, based on their username """
@@ -77,7 +79,8 @@ class BlogIndexHandler(BlogHandler):
     def get(self, username=""):
         """ """
 
-        # If request is for a specific page, set page number and offset accordingly
+        # If request is for a specific page, set page number and offset
+        # accordingly
         page = self.request.get("page")
         offset = 0
         page = page and int(page)
@@ -86,7 +89,8 @@ class BlogIndexHandler(BlogHandler):
         else:
             page = 1
 
-        # Fetch posts for all users, or a specific user, depending on request parameters
+        # Fetch posts for all users, or a specific user, depending on request
+        # parameters
         if username:
             user = self.get_user_by_name(username)
             posts = self.get_posts_by_user(user, self.page_size, offset)
@@ -99,8 +103,12 @@ class BlogIndexHandler(BlogHandler):
         else:
             prev_page = None
 
+        if not posts:
+            # fixes error when no posts exist, sets posts to empty rather than
+            # None, maintaining compatiblilty with subsequent code.
+            posts=""
         if len(posts) == self.page_size and Post.all().count() > offset+self.page_size:
-            next_page = page + 1
+                next_page = page + 1
         else:
             next_page = None
 
@@ -118,7 +126,8 @@ class BlogIndexHandler(BlogHandler):
 class NewPostHandler(BlogHandler):
 
     def render_form(self, title="", body="", error=""):
-        """ Render the new post form with or without an error, based on parameters """
+        """ Render the new post form with or without an error, based on
+        parameters """
         t = jinja_env.get_template("newpost.html")
         response = t.render(title=title, body=body, error=error)
         self.response.out.write(response)
@@ -127,7 +136,8 @@ class NewPostHandler(BlogHandler):
         self.render_form()
 
     def post(self):
-        """ Create a new blog post if possible. Otherwise, return with an error message """
+        """ Create a new blog post if possible. Otherwise, return with an
+        error message """
         title = self.request.get("title")
         body = self.request.get("body")
 
@@ -140,7 +150,8 @@ class NewPostHandler(BlogHandler):
                 author=self.user)
             post.put()
 
-            # get the id of the new post, so we can render the post's page (via the permalink)
+            # get the id of the new post, so we can render the post's page
+            # (via the permalink)
             id = post.key().id()
             self.redirect("/blog/%s" % id)
         else:
@@ -150,7 +161,8 @@ class NewPostHandler(BlogHandler):
 class ViewPostHandler(BlogHandler):
 
     def get(self, id):
-        """ Render a page with post determined by the id (via the URL/permalink) """
+        """ Render a page with post determined by the id (via the
+        URL/permalink) """
 
         post = Post.get_by_id(int(id))
         if post:
@@ -200,12 +212,16 @@ class SignupHandler(BlogHandler):
 
     def post(self):
         """
-            Validate submitted data, creating a new user if all fields are valid.
+            Validate submitted data, creating a new user if all fields are
+            valid.
             If data doesn't validate, render the form again with an error.
 
-            This code is essentially identical to the solution to the Signup portion
-            of the Formation assignment. The main modification is that we are now
-            able to create a new user object and store it when we have valid data.
+            This code is essentially identical to the solution to the Signup
+            portion
+            of the Formation assignment. The main modification is that we are
+            now
+            able to create a new user object and store it when we have valid
+            data.
         """
 
         submitted_username = self.request.get("username")
@@ -257,11 +273,9 @@ class SignupHandler(BlogHandler):
             self.redirect('/blog/newpost')
 
 class LoginHandler(BlogHandler):
-
-    # TODO - The login code here is mostly set up for you, but there isn't a template to log in
-
     def render_login_form(self, error=""):
-        """ Render the login form with or without an error, based on parameters """
+        """ Render the login form with or without an error, based on
+        parameters """
         t = jinja_env.get_template("login.html")
         response = t.render(error=error)
         self.response.out.write(response)
